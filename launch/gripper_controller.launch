@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <arg name="controller_ns" default="gripper_position_controller"/>
+
+    <!-- Load your parameters from the .yaml file-->
+    <rosparam command="load" file="$(find gen3_compliant_controllers)/config/gripper_position_controller.yaml" ns="$(arg controller_ns)"/>
+
+    <node name="$(arg controller_ns)" pkg="controller_manager" type="spawner" output="screen" args="--timeout 120 $(arg controller_ns)"/>
+</launch>
