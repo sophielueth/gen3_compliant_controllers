@@ -48,7 +48,7 @@
     </node>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-    <!-- start complinat controllers -->
+    <!-- start compliant controllers -->
     <node name="controller_spawner_started" pkg="controller_manager" type="spawner" respawn="false"
           output="screen" args="joint_state_controller" />
     <group if="$(eval controller_type == 'joint')">
@@ -69,5 +69,8 @@
 
     <!--load custom impedance parameters-->
     <rosparam command="load" file="$(find gen3_compliant_controllers)/config/msc_kinova_config.yaml" ns="kortex_hardware"/> 
+    
+    <!--start vision node-->
+    <include file="$(find kinova_vision)/launch/kinova_vision.launch"/>
     
 </launch>
