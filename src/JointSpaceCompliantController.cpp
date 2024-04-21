@@ -17,7 +17,7 @@
 #include <cassert>
 
 // Use (void) to silence unused warnings.
-#define assertm(exp, msg) assert(((void)msg, exp))
+#define assertm(exp, msg) assert((msg, exp))
 
 
 namespace gen3_compliant_controllers {
@@ -302,7 +302,7 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
     if (mErrorTheta[i] > M_PI){
       mErrorTheta[i] -= 2 * M_PI;
     }
-    assert(std::abs(mErrorTheta[i] <= M_PI));
+    assert(std::abs(mErrorTheta[i]) <= M_PI);
   }
   mTaskEffort = -mJointKMatrix * mErrorTheta - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
 
