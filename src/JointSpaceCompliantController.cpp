@@ -14,6 +14,12 @@
 #include "pinocchio/algorithm/rnea.hpp"
 #include "pinocchio/parsers/urdf.hpp"
 
+#include <cassert>
+
+// Use (void) to silence unused warnings.
+#define assertm(exp, msg) assert(((void)msg, exp))
+
+
 namespace gen3_compliant_controllers {
 
 namespace internal {
@@ -246,6 +252,7 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
     else
     {
       mDesiredPosition = Eigen::VectorXd::Map(&command.positions[0], command.positions.size());
+
       mDesiredVelocity = Eigen::VectorXd::Map(&command.velocities[0], command.velocities.size());
     }
   }
@@ -275,22 +282,29 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
   mDesiredThetaDot = mDesiredVelocity;
 
   Eigen::VectorXd mErrorTheta = mNominalThetaPrev - mDesiredTheta;
-  Eigen::VectorXd add_pis
-      = (mErrorTheta.array() > M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, -2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0));       // account for jump pi -> -pi
-  add_pis += (mErrorTheta.array() <= -M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, 2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump -pi -> pi
-  if (mNumControlledDofs == 6)
-  {
-    add_pis[1] = 0;
-    add_pis[2] = 0;
-    add_pis[4] = 0; // respect joint limits at pi/-pi for joints 2, 3, 5 (indices 1, 2, 4)
+//  Eigen::VectorXd add_pis
+//      = (mErrorTheta.array() > M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, -2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0));       // account for jump pi -> -pi
+//  add_pis += (mErrorTheta.array() <= -M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, 2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump -pi -> pi
+//  if (mNumControlledDofs == 6)
+//  {
+//    add_pis[1] = 0;
+//    add_pis[2] = 0;
+//    add_pis[4] = 0; // respect joint limits at pi/-pi for joints 2, 3, 5 (indices 1, 2, 4)
+//  }
+//  else
+//  {
+//    add_pis[1] = 0;
+//    add_pis[3] = 0;
+//    add_pis[5] = 0; // respect joint limits at pi/-pi for joints 2, 4, 6 (indices 1, 3, 5)
+//  }
+  for (int i = 0; i < mErrorTheta.size(); ++i) {
+    mErrorTheta[i] = std::fmod(mErrorTheta[i], 2*M_PI);
+    if (mErrorTheta[i] > M_PI){
+      mErrorTheta[i] -= 2 * M_PI;
+    }
+    assert(std::abs(mErrorTheta[i] <= M_PI));
   }
-  else
-  {
-    add_pis[1] = 0;
-    add_pis[3] = 0;
-    add_pis[5] = 0; // respect joint limits at pi/-pi for joints 2, 4, 6 (indices 1, 3, 5)
-  }
-  mTaskEffort = -mJointKMatrix * (mErrorTheta + add_pis) - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
+  mTaskEffort = -mJointKMatrix * mErrorTheta - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
 
   double step_time;
   step_time = 0.001;
